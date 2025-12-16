@@ -13,43 +13,52 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("");
   const [rows, setRows] = useState([]);
+  const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    return onAuthStateChanged(auth, setUser);
+    return onAuthStateChanged(auth, u => setUser(u));
   }, []);
 
-  async function loadData() {
+  const fetchData = async () => {
     try {
+      setError("");
       const token = await auth.currentUser.getIdToken(true);
 
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token })
+      const res = await fetch(`${API_URL}?token=${token}`, {
+        method: "GET",
+        redirect: "follow"
       });
 
-      const json = await res.json();
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status);
+      }
 
-      if (json.error) throw new Error(json.error);
+      const data = await res.json();
 
-      setRole(json.role);
-      setRows(json.data);
-    } catch (e) {
-      setError(e.message);
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setRole(data.role);
+      setRows(data.data || []);
+    } catch (err) {
+      setError(err.message);
     }
-  }
+  };
 
   useEffect(() => {
-    if (user) loadData();
+    if (!user) return;
+    fetchData();
+    const i = setInterval(fetchData, 10000);
+    return () => clearInterval(i);
   }, [user]);
 
   if (!user) {
     return (
       <div style={{ padding: 30 }}>
-        <h2>Login</h2>
+        <h2>Secure Sheets Dashboard</h2>
         <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
         <br /><br />
         <input
@@ -58,7 +67,9 @@ export default function App() {
           onChange={e => setPassword(e.target.value)}
         />
         <br /><br />
-        <button onClick={() => signInWithEmailAndPassword(auth, email, password)}>
+        <button
+          onClick={() => signInWithEmailAndPassword(auth, email, password)}
+        >
           Login
         </button>
       </div>
@@ -71,18 +82,25 @@ export default function App() {
       <p>{user.email} — {role}</p>
       <button onClick={() => signOut(auth)}>Logout</button>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && (
+        <p style={{ color: "red", marginTop: 20 }}>
+          Error: {error}
+        </p>
+      )}
 
-      <table border="1" cellPadding="6">
+      <table border="1" cellPadding="6" style={{ marginTop: 20 }}>
         <thead>
           <tr>
-            {rows[0] && Object.keys(rows[0]).map(h => <th key={h}>{h}</th>)}
+            {rows[0] &&
+              Object.keys(rows[0]).map(h => <th key={h}>{h}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={i}>
-              {Object.values(r).map((v, j) => <td key={j}>{v}</td>)}
+              {Object.values(r).map((v, j) => (
+                <td key={j}>{String(v)}</td>
+              ))}
             </tr>
           ))}
         </tbody>
