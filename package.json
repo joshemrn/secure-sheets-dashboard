@@ -1,0 +1,15 @@
+{
+  "name": "secure-sheets-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "homepage": "https://joshemrn.github.io/secure-sheets-dashboard",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "firebase": "^10.7.1",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "build": "react-scripts build"
+  }
+}
