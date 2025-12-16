@@ -11,49 +11,48 @@ const API_URL =
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [rows, setRows] = useState([]);
   const [role, setRole] = useState("");
+  const [rows, setRows] = useState([]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    return onAuthStateChanged(auth, setUser);
+    return onAuthStateChanged(auth, u => setUser(u));
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const load = async () => {
+  async function loadData() {
+    try {
       const token = await auth.currentUser.getIdToken(true);
       const res = await fetch(`${API_URL}?token=${token}`);
       const json = await res.json();
-      setRows(json.data || []);
-      setRole(json.role || "");
-    };
 
-    load();
-    const i = setInterval(load, 10000);
-    return () => clearInterval(i);
+      if (json.error) throw new Error(json.error);
+
+      setRole(json.role);
+      setRows(json.data);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  useEffect(() => {
+    if (user) {
+      loadData();
+      const i = setInterval(loadData, 10000);
+      return () => clearInterval(i);
+    }
   }, [user]);
 
   if (!user) {
     return (
       <div style={{ padding: 30 }}>
         <h2>Login</h2>
-        <input
-          placeholder="Email"
-          onChange={e => setEmail(e.target.value)}
-        /><br /><br />
-        <input
-          type="password"
-          placeholder="Password"
-          onChange={e => setPassword(e.target.value)}
-        /><br /><br />
-        <button
-          onClick={() =>
-            signInWithEmailAndPassword(auth, email, password)
-          }
-        >
+        <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
+        <br /><br />
+        <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
+        <br /><br />
+        <button onClick={() => signInWithEmailAndPassword(auth, email, password)}>
           Login
         </button>
       </div>
@@ -62,15 +61,18 @@ export default function App() {
 
   return (
     <div style={{ padding: 30 }}>
-      <h2>Dashboard</h2>
-      <p>{user.email} — {role}</p>
+      <h1>Secure Sheets Dashboard</h1>
+      <p>{user.email} — <b>{role}</b></p>
       <button onClick={() => signOut(auth)}>Logout</button>
 
-      <table border="1" cellPadding="8">
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <table border="1" cellPadding="6">
         <thead>
           <tr>
-            {rows[0] &&
-              Object.keys(rows[0]).map(h => <th key={h}>{h}</th>)}
+            {rows[0] && Object.keys(rows[0]).map(h => (
+              <th key={h}>{h}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
