@@ -18,13 +18,19 @@ export default function App() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    return onAuthStateChanged(auth, u => setUser(u));
+    return onAuthStateChanged(auth, setUser);
   }, []);
 
   async function loadData() {
     try {
       const token = await auth.currentUser.getIdToken(true);
-      const res = await fetch(`${API_URL}?token=${token}`);
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+      });
+
       const json = await res.json();
 
       if (json.error) throw new Error(json.error);
@@ -37,11 +43,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (user) {
-      loadData();
-      const i = setInterval(loadData, 10000);
-      return () => clearInterval(i);
-    }
+    if (user) loadData();
   }, [user]);
 
   if (!user) {
@@ -50,7 +52,11 @@ export default function App() {
         <h2>Login</h2>
         <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
         <br /><br />
-        <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
+        <input
+          type="password"
+          placeholder="Password"
+          onChange={e => setPassword(e.target.value)}
+        />
         <br /><br />
         <button onClick={() => signInWithEmailAndPassword(auth, email, password)}>
           Login
@@ -61,8 +67,8 @@ export default function App() {
 
   return (
     <div style={{ padding: 30 }}>
-      <h1>Secure Sheets Dashboard</h1>
-      <p>{user.email} — <b>{role}</b></p>
+      <h2>Secure Sheets Dashboard</h2>
+      <p>{user.email} — {role}</p>
       <button onClick={() => signOut(auth)}>Logout</button>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
@@ -70,17 +76,13 @@ export default function App() {
       <table border="1" cellPadding="6">
         <thead>
           <tr>
-            {rows[0] && Object.keys(rows[0]).map(h => (
-              <th key={h}>{h}</th>
-            ))}
+            {rows[0] && Object.keys(rows[0]).map(h => <th key={h}>{h}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={i}>
-              {Object.values(r).map((v, j) => (
-                <td key={j}>{v}</td>
-              ))}
+              {Object.values(r).map((v, j) => <td key={j}>{v}</td>)}
             </tr>
           ))}
         </tbody>
