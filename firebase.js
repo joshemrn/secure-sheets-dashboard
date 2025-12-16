@@ -1,0 +1,3 @@
+apiKey: "...",
+authDomain: "...",
+projectId: "..."
